@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const colors = require("colors");
 require("dotenv").config();
+const jwt = require("jsonwebtoken");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.PORT || 5000;
@@ -19,6 +20,14 @@ const client = new MongoClient(uri, {
 
 const run = async () => {
   try {
+    app.post("/jwt", async (req, res) => {
+      const user = await req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "1h",
+      });
+      res.send({token});
+    });
+
     const serviceCollection = client
       .db("car-Doctor-server")
       .collection("servicesCollection");
@@ -46,13 +55,13 @@ const run = async () => {
     app.post("/insert/order", async (req, res) => {
       const OrderData = req.body;
       const result = await serviceOrderCollection.insertOne(OrderData);
-
       res.send(result);
     });
 
     // get Specific Data client site to Mongodb database
     app.get("/orders", async (req, res) => {
       let qurey = {};
+      console.log(req.headers.authorization)
       if (req.query) {
         qurey = {
           userEmail: req.query.email,
@@ -74,7 +83,7 @@ const run = async () => {
     // update specific data
     app.patch("/update/:id", async (req, res) => {
       const id = req.params.id;
-      console.log(id)
+      console.log(id);
       const query = { _id: new ObjectId(id) };
       const status = req.body.status;
       const updateDoc = {
@@ -84,8 +93,7 @@ const run = async () => {
       };
       const result = await serviceOrderCollection.updateOne(query, updateDoc);
       res.send(result);
-      console.log(result)
-
+      console.log(result);
     });
   } catch (error) {
     console.log(error.name.red.bold, error.message.red);
